@@ -22,11 +22,13 @@ auto main() -> std::int32_t
 
         auto users = std::vector<Users>{};
 
-        db.ExecuteRawQuery(ASYS::SL{ "SELECT * FROM Users;" }, 
+        db.ExecuteRawQuery(ASYS::SL{ "SELECT * FROM Users WHERE ID != ?;" },
+            ADBC::CreateSQLOutputs(user.ID, user.Name, user.Email), 
+            ADBC::CreateSQLParams(3),
             [&] (std::int32_t& id, std::string& name, std::string& email)
         {
             users.push_back(user);
-        }, user.ID, user.Name, user.Email);
+        });
 
         for (const auto& [id, name, email] : users)
         {

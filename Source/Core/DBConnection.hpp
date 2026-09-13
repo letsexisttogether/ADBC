@@ -3,12 +3,46 @@
 #include <cstdint>
 #include <functional>
 #include <stdexcept>
+#include <tuple>
+#include <type_traits>
 
 #include <ASYS/String/StringLiteral.hpp>
 #include <sqlite3.h>
 
 namespace ADBC
 {
+    template <class ... _Args>
+    struct SQLParamPack
+    {
+        std::tuple<_Args...> Values{};
+    };
+
+
+    template <class ... _Args>
+    auto CreateSQLParams(_Args&& ... args) -> SQLParamPack
+        <std::decay_t<_Args>...>
+    {
+        return SQLParamPack<std::decay_t<_Args>...>
+        {
+            std::tuple{ std::forward<_Args>(args) ... }
+        };
+    }
+
+    template<class... _Args>
+    struct SQLOutputPack
+    {
+        std::tuple<_Args&...> Values;
+    };
+
+    template<class... _Args>
+    auto CreateSQLOutputs(_Args&... args)
+    {
+        return SQLOutputPack<_Args...>
+        {
+            std::tie(args...)
+        };
+    }
+
     class SQLite3Database
     {
     public:
@@ -18,9 +52,11 @@ namespace ADBC
 
         ~SQLite3Database();
 
-        template <std::size_t _Size, class Callback, class ... _Args>
-        auto ExecuteRawQuery(ASYS::StringLiteral<_Size> query,
-            Callback&& callback, _Args& ... args) -> void; 
+    template <std::size_t _Size, class ... _Outputs, 
+        class ... _Params, class Callback>
+    auto ExecuteRawQuery(ASYS::StringLiteral<_Size> query,
+        SQLOutputPack<_Outputs...> outputs, SQLParamPack<_Params...> params,
+        Callback&& callback) -> void;
 
         auto operator = (const SQLite3Database&) = delete;
 
@@ -37,13 +73,24 @@ namespace ADBC
         auto ExtractValue(_Type& value, sqlite3_stmt* const statement,
             const ColumnID columnID) -> void;
 
+        /**
+        * @brief Binds the value for the statement.
+        *
+        * @pre statement should not be null
+        */
+        template <class _Type>
+        auto BindValue(const _Type& value, sqlite3_stmt* const statement,
+            const ColumnID paramID) -> void;
+
     private:
         sqlite3* m_DB{};
     };
 
-    template <std::size_t _Size, class Callback, class ... _Args>
+    template <std::size_t _Size, class ... _Outputs, 
+        class ... _Params, class Callback>
     auto SQLite3Database::ExecuteRawQuery(ASYS::StringLiteral<_Size> query,
-        Callback&& callback, _Args& ... args) -> void
+        SQLOutputPack<_Outputs...> outputs, SQLParamPack<_Params...> params,
+        Callback&& callback) -> void
     {
         sqlite3_stmt* statement{};
 
@@ -55,11 +102,17 @@ namespace ADBC
         }
 
         if (const auto columnCount = sqlite3_column_count(statement);
-            columnCount < sizeof ... (_Args))
+            columnCount < sizeof ... (_Outputs)) 
         {
             throw std::runtime_error{ "[ADBC::SQLITE3Database] "
                 "Column count is less than provided values" };
         }
+
+        std::apply([&](auto&&... values)
+        {
+            auto paramID = ColumnID{ 1 };
+            (BindValue(values, statement, paramID), ...);
+        }, params.Values);
 
         for (auto stepResult = SQLITE_ROW; stepResult == SQLITE_ROW; )
         {
@@ -70,11 +123,14 @@ namespace ADBC
                 return;
             }
 
-            auto columnID = ColumnID{};
+            std::apply([&] (auto&... values)
+            {
+                auto columnID = ColumnID{};
+                (ExtractValue(values, statement, columnID++), ...);
 
-            (ExtractValue(args, statement, columnID++), ...);
+                std::invoke(std::forward<Callback>(callback), values...);
 
-            std::invoke(std::forward<Callback>(callback), args...);
+            }, outputs.Values);
         }
     }
 };

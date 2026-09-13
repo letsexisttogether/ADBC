@@ -46,4 +46,26 @@ namespace ADBC
         value = reinterpret_cast<const char*>(sqlite3_column_text
             (statement, columnID));
     }
+
+    template <>
+    auto SQLite3Database::BindValue<std::int32_t>(const std::int32_t& value,
+        sqlite3_stmt* const statement, const ColumnID paramID) -> void
+    {
+        sqlite3_bind_int(statement, paramID, value);
+    }
+
+    template <>
+    auto SQLite3Database::BindValue<double>(const double& value,
+        sqlite3_stmt* const statement, const ColumnID paramID) -> void
+    {
+        sqlite3_bind_double(statement, paramID, value);
+    }
+
+    template <>
+    auto SQLite3Database::BindValue<std::string>(const std::string& value,
+        sqlite3_stmt* const statement, const ColumnID paramID) -> void
+    {
+        sqlite3_bind_text(statement, paramID, value.c_str(),
+            value.size(), SQLITE_STATIC);
+    }
 };
