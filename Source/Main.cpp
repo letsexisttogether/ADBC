@@ -4,6 +4,8 @@
 // #include "Core/DBConnection.hpp"
 
 #include <ADBC/Core/DBConnection.hpp>
+#include <ADBC/Core/Builder.hpp>
+#include <ADBC/Core/Prototype.hpp>
 
 auto main() -> std::int32_t
 {
@@ -13,18 +15,19 @@ auto main() -> std::int32_t
     {
         ADBC::SQLite3Database db{ "Data/SomeDatabase.db" }; 
 
+        auto query = ADBC::Query{}
+            .Select(ASYS::SL{ "ID" }, ASYS::SL{ "Name" },
+                ASYS::SL{ "Email" })
+            .From(ASYS::SL{ "Users" })
+            .Where()
+            .Operator("AND", "!=", "ID");
 
-        struct Users
-        {
-            std::int32_t ID{};
-            std::string Name{};
-            std::string Email{};
-        };
+        std::cout << static_cast<std::string&>(query).c_str() << std::endl;
+
         auto user = Users{};
-
         auto users = std::vector<Users>{};
 
-        db.ExecuteRawQuery(ASYS::SL{ "SELECT * FROM Users WHERE ID != ?;" },
+        db.ExecuteRawQuery(query,
             ADBC::CreateSQLOutputs(user.ID, user.Name, user.Email), 
             ADBC::CreateSQLParams(3),
             [&] (std::int32_t& id, std::string& name, std::string& email)
@@ -40,7 +43,7 @@ auto main() -> std::int32_t
     }
     catch (std::exception& exp)
     {
-        std::cerr << exp.what();
+        std::cerr << exp.what() << std::endl;
     }
 
     return EXIT_SUCCESS;

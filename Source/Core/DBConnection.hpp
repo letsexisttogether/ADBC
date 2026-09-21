@@ -17,7 +17,6 @@ namespace ADBC
         std::tuple<_Args...> Values{};
     };
 
-
     template <class ... _Args>
     auto CreateSQLParams(_Args&& ... args) -> SQLParamPack
         <std::decay_t<_Args>...>
@@ -58,6 +57,10 @@ namespace ADBC
         SQLOutputPack<_Outputs...> outputs, SQLParamPack<_Params...> params,
         Callback&& callback) -> void;
 
+    template <class ... _Outputs, class ... _Params, class Callback>
+    auto ExecuteRawQuery(const std::string& query, SQLOutputPack<_Outputs...> outputs,
+        SQLParamPack<_Params...> params, Callback&& callback) -> void;
+
         auto operator = (const SQLite3Database&) = delete;
 
     private:
@@ -92,13 +95,21 @@ namespace ADBC
         SQLOutputPack<_Outputs...> outputs, SQLParamPack<_Params...> params,
         Callback&& callback) -> void
     {
+        ExecuteRawQuery(query, outputs, params, std::move(callback));
+    }
+
+    template <class ... _Outputs, class ... _Params, class Callback>
+    auto SQLite3Database::ExecuteRawQuery(const std::string& query,
+        SQLOutputPack<_Outputs...> outputs, SQLParamPack<_Params...> params,
+        Callback&& callback) -> void
+    {
         sqlite3_stmt* statement{};
 
-        if (sqlite3_prepare_v2(m_DB, query, query.GetSize(),
+        if (sqlite3_prepare_v2(m_DB, query.c_str(), query.size(),
             &statement, nullptr) != SQLITE_OK)
         {
             throw std::runtime_error{ "[ADBC::SQLITE3Database] "
-                "Can't open db" };
+                "Can't create statement" };
         }
 
         if (const auto columnCount = sqlite3_column_count(statement);
