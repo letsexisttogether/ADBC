@@ -19,7 +19,7 @@ target_link_libraries(${ADBC_LIB}
         ASYS::String
 )
 
-target_include_directories(${ADBC_LIB} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+target_include_directories(${ADBC_LIB} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
 set(ADBC_APP ADBC_APP)
 

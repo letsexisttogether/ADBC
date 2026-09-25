@@ -6,11 +6,36 @@
 #include <type_traits>
 
 #include <ASYS/String/StringLiteral.hpp>
-
 #include <ADBC/Core/DBConnection.hpp>
+#include <ADBC/Core/Table.hpp>
 
 namespace ADBC 
 {
+    class SelectQuery{}; // From()
+
+    class FromQuery{}; // Where(), AsExecutable()
+
+    class WhereQuery{}; // And(), Or(), AsExecutable()
+
+    template <ColumnType... Columns>
+    auto Select(Columns&&... columns) -> std::string 
+    {
+        auto text = std::string{ "SELECT " };
+
+        auto isFirst = true;
+
+        (
+            (
+                text += ((isFirst) ? (""): (", ")),
+                isFirst = false,
+                text += std::remove_cvref_t<Columns>::Name
+            ),
+            ...
+        );
+
+        return text;
+    }
+
     class Query
     {
     public:

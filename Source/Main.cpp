@@ -14,32 +14,47 @@ auto main() -> std::int32_t
     try
     {
         ADBC::SQLite3Database db{ "Data/SomeDatabase.db" }; 
-
+        
+        /*
         auto query = ADBC::Query{}
             .Select(ASYS::SL{ "ID" }, ASYS::SL{ "Name" },
                 ASYS::SL{ "Email" })
             .From(ASYS::SL{ "Users" })
             .Where()
             .Operator("AND", "!=", "ID");
+        */
 
-        std::cout << static_cast<std::string&>(query).c_str() << std::endl;
+        /*
+            // strings for now, later also columns
+            auto query = Select("ID", "Name", "Email", user.ID, user.Name, user.Email)
+                .From("Users")
+                .Where("ID = 3")
+                .And("Name != 'SomeName'")
+                .AsExecutable();
+            query.Execute(db, lambda for rows interpretation);
+         
+            // later:
+            auto query = Select(Users::ID, Users::Name, Users::Email)
+                .From(Users)
+                .Where(Users::ID == 3)
+                .And(Users::Name != "SomeName")
+                .AsExecutable();'
+            query.Execute(db, lambda for rows interpretation);
 
-        auto user = Users{};
-        auto users = std::vector<Users>{};
+        */
 
-        db.ExecuteRawQuery(query,
-            ADBC::CreateSQLOutputs(user.ID, user.Name, user.Email), 
-            ADBC::CreateSQLParams(3),
-            [&] (std::int32_t& id, std::string& name, std::string& email)
-        {
-            users.push_back(user);
-        });
+        auto ID = ADBC::Col<ASYS::SL{ "ID", }, std::int32_t>();
+        auto Name = ADBC::Col<ASYS::SL{ "Name", }>(std::string{ "Something" });
 
-        for (const auto& [id, name, email] : users)
-        {
-            std::cout << id << ' ' << name << ' '
-                << email << std::endl;
-        }
+        auto email = std::string{};
+        auto Email = ADBC::Col<ASYS::SL{ "Email" }>(email);
+
+        Email.Value = "SomeEmail@gmail.com";
+        std::cout << Name.Value << ' ' << email << std::endl;
+
+        auto query = ADBC::Select(ID, Name, Email);
+
+        std::cout << query << std::endl;;
     }
     catch (std::exception& exp)
     {
