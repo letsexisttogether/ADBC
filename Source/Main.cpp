@@ -18,7 +18,8 @@ auto main() -> std::int32_t
         auto query = ADBC::Query{ "SELECT * FROM Users", std::ignore, std::ignore };
 
         auto anotherQuery = ADBC::Select(ADBC::Col<"ID">(user.ID),
-            ADBC::Col<"Name">(user.Name), ADBC::Col<"Email">(user.Email));
+            ADBC::Col<"Name">(user.Name), ADBC::Col<"Email">(user.Email))
+            .From(ASYS::SL{ "Users" });
 
         std::cout << query.GetText() << '\n'
             << anotherQuery.GetText() << std::endl;

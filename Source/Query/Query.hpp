@@ -1,5 +1,7 @@
 #pragma once
 
+#include <ASYS/String/StringLiteral.hpp>
+
 #include "Core/DBConnection.hpp"
 
 namespace ADBC
@@ -16,6 +18,9 @@ namespace ADBC
     public:
         Query(std::string&& text, _QueryOutputPack outputs,
             _QueryParamPack params);
+
+        template <std::size_t _Size>
+        auto From(ASYS::StringLiteral<_Size> table);
 
         auto GetText() const noexcept -> const std::string&;
 
@@ -35,8 +40,22 @@ namespace ADBC
         m_Params{ std::move(params) } {}
 
     template <class _QueryOutputPack, class _QueryParamPack>
-    auto Query<_QueryOutputPack, _QueryParamPack>::GetText() const noexcept
-        -> const std::string&
+    template <std::size_t _Size>
+    auto Query<_QueryOutputPack, _QueryParamPack>::From
+        (ASYS::StringLiteral<_Size> table)
+    {
+        m_Text += table;
+        m_Text += '\n';
+
+        return Query<_QueryOutputPack, _QueryParamPack>
+        {
+            std::move(m_Text), std::move(m_Outputs), std::move(m_Params)
+        };
+    }
+
+    template <class _QueryOutputPack, class _QueryParamPack>
+    auto Query<_QueryOutputPack, _QueryParamPack>::GetText()
+        const noexcept -> const std::string&
     {
         return m_Text;
     }
