@@ -6,10 +6,14 @@
 namespace ADBC 
 {
     template <ColumnType... _Columns>
-        requires(sizeof ... (_Columns) > 0)
     auto Select(_Columns&&... columns)
     {
         auto text = std::string{ "SELECT " };
+
+        if (!(sizeof ... (_Columns)))
+        {
+            text += "*";
+        }
 
         auto isFirst = true;
         (
@@ -21,9 +25,11 @@ namespace ADBC
             ...
         );
 
+        text += '\n';
+
         auto outputs = std::tie(columns.Value...);
 
-        return Query<decltype(outputs), std::tuple<>>
+        return Query<decltype(outputs), std::tuple<>, QueryState::Select>
         {
             std::move(text), outputs, {}
         };
