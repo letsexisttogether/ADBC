@@ -4,13 +4,7 @@
 
 #include <ADBC/Core/DBConnection.hpp>
 #include <ADBC/Core/Builder.hpp>
-
-struct Users
-{
-    std::int32_t ID{};
-    std::string Name{};
-    std::string Email{};
-};
+#include <ADBC/Core/PrototypeTables.hpp>
 
 inline auto OldMain(ADBC::SQLite3Database& db) -> void
 {

@@ -6,6 +6,7 @@ add_library(ADBC ALIAS ${ADBC_LIB})
 target_compile_features(${ADBC_LIB} PUBLIC cxx_std_23)
 
 add_subdirectory(Core)
+add_subdirectory(Query)
 
 target_include_directories(${ADBC_LIB} 
     PUBLIC
@@ -20,6 +21,8 @@ target_link_libraries(${ADBC_LIB}
 )
 
 target_include_directories(${ADBC_LIB} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+
+# set_target_properties(${ADBC_LIB} PROPERTIES COMPILE_WARNING_AS_ERROR ON)
 
 set(ADBC_APP ADBC_APP)
 
