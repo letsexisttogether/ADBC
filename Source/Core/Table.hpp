@@ -30,7 +30,8 @@ namespace ADBC
     {
         using Type = std::remove_cvref_t<_Type>;
 
-        return Column<_Name, Type, true>{
+        return Column<_Name, Type, true>
+        {
             std::forward<_Type>(value)
         };
     }
@@ -45,6 +46,7 @@ namespace ADBC
     concept ColumnType = requires(_Type column)
     {
         typename std::remove_cvref_t<_Type>::ValueType;
+        typename std::remove_cvref_t<_Type>::StorageType;
         std::remove_cvref_t<_Type>::Name;
         column.Value;
     };

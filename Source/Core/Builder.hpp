@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cfloat>
 #include <stdexcept>
 #include <string>
 #include <tuple>
@@ -11,136 +12,91 @@
 
 namespace ADBC 
 {
-    class SelectQuery{}; // From()
-
-    class FromQuery{}; // Where(), AsExecutable()
-
-    class WhereQuery{}; // And(), Or(), AsExecutable()
+    class SelectQuery;
+    class FromQuery; 
+    class WhereQuery;
 
     template <ColumnType... Columns>
-    auto Select(Columns&&... columns) -> std::string 
+    auto Select(Columns&&... columns) -> SelectQuery;
+
+    class BaseQuery
+    {
+    protected:
+        BaseQuery() = default;
+        BaseQuery(const BaseQuery&) = delete;
+        BaseQuery(std::string&& text);
+
+        auto GetText() const -> const std::string&;
+
+        auto operator = (const BaseQuery&) = delete;
+
+    protected:
+        std::string m_Text{};
+    };
+
+    class SelectQuery : private BaseQuery
+    {
+    public:
+        using BaseQuery::GetText;
+
+    public:
+        auto From(std::string&& table) -> FromQuery;        
+
+    private:
+        using BaseQuery::BaseQuery;
+
+    private:
+        template <ColumnType... _Columns>
+        friend auto Select(_Columns&&...) -> SelectQuery;
+    };
+
+    class FromQuery : private BaseQuery
+    {
+    public:
+        using BaseQuery::GetText;
+
+    public:
+        auto Where(std::string&& condition) -> WhereQuery;
+
+        auto Execute(SQLite3Database& db) -> void;
+
+    private:
+        using BaseQuery::BaseQuery;
+
+    private:
+        friend class SelectQuery;
+    };
+
+    class WhereQuery : private BaseQuery
+    {
+    public:
+        using BaseQuery::GetText;
+
+    public:
+        auto Execute(SQLite3Database& db) -> void;
+
+    private:
+        using BaseQuery::BaseQuery;
+
+    private:
+        friend class FromQuery;
+    };
+
+    template <ColumnType... _Columns>
+    auto Select(_Columns&&... columns) -> SelectQuery
     {
         auto text = std::string{ "SELECT " };
 
         auto isFirst = true;
-
         (
             (
                 text += ((isFirst) ? (""): (", ")),
                 isFirst = false,
-                text += std::remove_cvref_t<Columns>::Name
+                text += std::remove_cvref_t<_Columns>::Name
             ),
             ...
         );
 
-        return text;
+        return SelectQuery{ std::move(text) };
     }
-
-    class Query
-    {
-    public:
-        template <class ... _Fields>
-        auto Select(_Fields&& ... fields) -> Query&
-        {
-            m_State = State::Select;
-
-            m_Text = "SELECT ";
-
-            auto AddField = [&] (auto field)
-            {
-                m_Text += field;
-                m_Text += ", ";
-            };
-
-            (AddField(fields), ...);
-
-            if (!m_Text.empty() && m_Text.back() == ' ')
-            {
-                m_Text.pop_back();
-                m_Text.pop_back();
-            }
-
-            m_Text += '\n';
-
-            return *this;
-        }
-
-        template <class ... _Tables>
-        auto From(_Tables&& ... tables) -> Query& 
-        {
-            if (m_State != State::Select)
-            {
-                throw std::runtime_error{ "[ADBC::Query] FROM "
-                    "not after SELECT" };
-            }
-
-            m_State = State::From;
-
-            m_Text += "FROM ";
-
-            ((m_Text += tables), ...);
-
-            m_Text += '\n';
-
-            return *this;
-        }
-
-        auto Where() -> Query& 
-        {
-            if (m_State != State::From)
-            {
-                throw std::runtime_error{ "[ADBC::Query] WHERE "
-                    "not after FROM" };
-            }
-
-            m_State = State::Where;
-
-            m_Text += "WHERE 1 = 1\n";
-
-            return *this;
-        }
-
-        template <class ... _Params>
-        auto Operator(const char* const conjunction,
-            const char* const operation, _Params&& ... params) -> Query& 
-        {
-            if (m_State != State::Where)
-            {
-                throw std::runtime_error{ "[ADBC::Query] Operation "
-                    "not after WHERE" };
-            }
-
-            auto AddParam = [&] (auto param)
-            {
-                m_Text += conjunction;
-                m_Text += ' ';
-                m_Text += param;
-                m_Text += ' ';
-                m_Text += operation;
-                m_Text += " ?\n";
-            };
-
-            (AddParam(params), ...);
-
-            return *this;
-        };
-
-        operator std::string& () noexcept
-        {
-            return m_Text;
-        }
-
-    private:
-        enum class State : std::uint8_t
-        {
-            NotInit,
-            Select,
-            From,
-            Where
-        };
-
-    private:
-        State m_State{};
-        std::string m_Text{};
-    };
 };
