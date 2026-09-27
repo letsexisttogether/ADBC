@@ -3,7 +3,8 @@
 
 #include <ADBC/Core/DBConnection.hpp>
 #include <ADBC/Core/PrototypeTables.hpp>
-#include <ADBC/Query/Builder.hpp>
+#include <ADBC/Query/Query.hpp>
+#include <ADBC/Query/Operators.hpp>
 
 auto main() -> std::int32_t
 {
@@ -21,6 +22,11 @@ auto main() -> std::int32_t
             .From(ASYS::SL{ "Users" });
 
         std::cout << query.GetText() << std::endl;
+
+        std::cout << ADBC::Operators::Equals(ADBC::Col<"ID">(user.ID))
+            << ' ' << ADBC::Operators::NotEquals(ADBC::Col<"ID">(user.ID))
+            << ' ' << ADBC::Operators::Between(ADBC::Col<"ID">(user.Email))
+            << std::endl;
     }
     catch (std::exception& exp)
     {

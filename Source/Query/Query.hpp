@@ -43,14 +43,21 @@ namespace ADBC
             requires (ASYS::IsOneOfV<_State,
             QueryState::Select, QueryState::From>);
 
+        auto Where() requires (ASYS::IsOneOfV<_State,
+            QueryState::From>);
+
         auto GetText() const noexcept -> const std::string&;
 
         auto GetOutputPack() const noexcept -> const _QueryOutputPack&;
         auto GetParamPack() const noexcept -> const _QueryParamPack&;
 
     private:
+        Query(const Query&) = delete;
+
         Query(std::string&& text, _QueryOutputPack outputs,
             _QueryParamPack params);
+
+        auto operator = (const Query&) = delete;
 
     private:
         template <class, class, QueryState>
@@ -108,6 +115,18 @@ namespace ADBC
         m_Text += '\n';
 
         return Query<_QueryOutputPack, _QueryParamPack, QueryState::From>
+        {
+            std::move(m_Text), std::move(m_Outputs), std::move(m_Params)
+        };
+    }
+
+    template <class _QueryOutputPack, class _QueryParamPack, QueryState _State>
+    auto Query<_QueryOutputPack, _QueryParamPack, _State>::Where()
+        requires (ASYS::IsOneOfV<_State, QueryState::From>)
+    {
+        m_Text += "WHERE 1 = 1\n";
+
+        return Query<_QueryOutputPack, _QueryParamPack, QueryState::Where>
         {
             std::move(m_Text), std::move(m_Outputs), std::move(m_Params)
         };
