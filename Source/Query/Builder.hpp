@@ -6,6 +6,7 @@
 namespace ADBC 
 {
     template <ColumnType... _Columns>
+        requires(sizeof ... (_Columns) > 0)
     auto Select(_Columns&&... columns)
     {
         auto text = std::string{ "SELECT " };
