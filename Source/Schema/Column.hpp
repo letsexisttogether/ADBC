@@ -1,7 +1,8 @@
 #pragma once 
 
-#include <ASYS/String/StringLiteral.hpp>
 #include <type_traits>
+
+#include <ASYS/String/StringLiteral.hpp>
 
 namespace ADBC
 {

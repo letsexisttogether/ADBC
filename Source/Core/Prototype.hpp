@@ -3,7 +3,7 @@
 #include <iostream>
 
 #include <ADBC/Core/DBConnection.hpp>
-#include <ADBC/Core/Builder.hpp>
+#include <ADBC/Query/Builder.hpp>
 #include <ADBC/Core/PrototypeTables.hpp>
 
 inline auto OldMain(ADBC::SQLite3Database& db) -> void

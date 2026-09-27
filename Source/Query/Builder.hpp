@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Core/Table.hpp"
+#include "Schema/Column.hpp"
 #include "Query/Query.hpp"
 
 namespace ADBC 

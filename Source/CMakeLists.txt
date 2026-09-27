@@ -7,6 +7,7 @@ target_compile_features(${ADBC_LIB} PUBLIC cxx_std_23)
 
 add_subdirectory(Core)
 add_subdirectory(Query)
+add_subdirectory(Schema)
 
 target_include_directories(${ADBC_LIB} 
     PUBLIC
