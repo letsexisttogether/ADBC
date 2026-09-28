@@ -6,12 +6,14 @@
 
 namespace ADBC
 {
-    template <ASYS::StringLiteral _Name, class _Type, bool _IsValueEmbedded>
+    template <ASYS::StringLiteral _Name, class _Type, bool _IsValueEmbedded = true>
     struct Column
-    {
+    { 
         using ValueType = _Type;
         using StorageType = std::conditional_t<_IsValueEmbedded,
             _Type, _Type&>;
+
+        constexpr Column() requires (_IsValueEmbedded) = default;
 
         constexpr explicit Column(StorageType value) : Value{ value } {}
 
@@ -31,7 +33,7 @@ namespace ADBC
     {
         using Type = std::remove_cvref_t<_Type>;
 
-        return Column<_Name, Type, true>
+        return Column<_Name, Type>
         {
             std::forward<_Type>(value)
         };
@@ -40,7 +42,7 @@ namespace ADBC
     template <ASYS::StringLiteral _Name, class _Type>
     constexpr auto Col()
     {
-        return Column<_Name, _Type, true>{ _Type{} };
+        return Column<_Name, _Type>{ _Type{} };
     }
 
     template <class _Column>

@@ -51,7 +51,7 @@ namespace ADBC::OPS
         return Condition<std::tuple<_Params...>>
         {
             std::string{ std::remove_cvref_t<_Column>::Name } + " BETWEEN ? AND ?",
-            std::tuple<std::tuple<_Params...>>
+            std::tuple<_Params...>
             {
                 std::forward<_Params>(param)...
             }
