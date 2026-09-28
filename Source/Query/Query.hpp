@@ -14,6 +14,10 @@ namespace ADBC
     template <class ... _Types>
     using QueryParamPack = std::tuple<_Types...>;
 
+    /**
+    * @brief Represents current state of the query
+    * @details TODO #2: Remake to flags
+    */
     enum class QueryState
     {
         None,
@@ -54,6 +58,9 @@ namespace ADBC
         template <class _Condition>
         auto Or(_Condition&& condition) 
             requires (ASYS::IsOneOfV<_State, QueryState::Where>);
+
+        template <class _DB, class _Callback>
+        auto Execute(_DB& db, _Callback&& callback) -> void;
 
         auto GetText() const noexcept -> const std::string&;
 
@@ -133,7 +140,8 @@ namespace ADBC
 
     template <class _QueryOutputPack, class _QueryParamPack, QueryState _State>
     template <class _Condition>
-    auto Query<_QueryOutputPack, _QueryParamPack, _State>::Where(_Condition&& condition) 
+    auto Query<_QueryOutputPack, _QueryParamPack, _State>::
+    Where(_Condition&& condition) 
         requires (ASYS::IsOneOfV<_State, QueryState::From>)
     {
         return ApplyOperator(condition, "WHERE");
@@ -141,7 +149,8 @@ namespace ADBC
 
     template <class _QueryOutputPack, class _QueryParamPack, QueryState _State>
     template <class _Condition>
-    auto Query<_QueryOutputPack, _QueryParamPack, _State>::And(_Condition&& condition) 
+    auto Query<_QueryOutputPack, _QueryParamPack, _State>::
+    And(_Condition&& condition) 
         requires (ASYS::IsOneOfV<_State, QueryState::Where>)
     {
         return ApplyOperator(condition, "AND");
@@ -149,10 +158,19 @@ namespace ADBC
 
     template <class _QueryOutputPack, class _QueryParamPack, QueryState _State>
     template <class _Condition>
-    auto Query<_QueryOutputPack, _QueryParamPack, _State>::Or(_Condition&& condition) 
+    auto Query<_QueryOutputPack, _QueryParamPack, _State>::
+    Or(_Condition&& condition) 
         requires (ASYS::IsOneOfV<_State, QueryState::Where>)
     {
         return ApplyOperator(condition, "OR");
+    }
+
+    template <class _QueryOutputPack, class _QueryParamPack, QueryState _State>
+    template <class _DB, class _Callback>
+    auto Query<_QueryOutputPack, _QueryParamPack, _State>::
+    Execute(_DB& db, _Callback&& callback) -> void
+    {
+        db.Execute(m_Text, m_Outputs, m_Params, callback);
     }
 
     template <class _QueryOutputPack, class _QueryParamPack, QueryState _State>

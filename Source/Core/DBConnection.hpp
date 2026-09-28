@@ -51,15 +51,19 @@ namespace ADBC
 
         ~SQLite3Database();
 
-    template <std::size_t _Size, class ... _Outputs, 
-        class ... _Params, class Callback>
-    auto ExecuteRawQuery(ASYS::StringLiteral<_Size> query,
-        SQLOutputPack<_Outputs...> outputs, SQLParamPack<_Params...> params,
-        Callback&& callback) -> void;
+        template <std::size_t _Size, class ... _Outputs, 
+            class ... _Params, class Callback>
+        auto ExecuteRawQuery(ASYS::StringLiteral<_Size> query,
+            SQLOutputPack<_Outputs...> outputs, SQLParamPack<_Params...> params,
+            Callback&& callback) -> void;
 
-    template <class ... _Outputs, class ... _Params, class Callback>
-    auto ExecuteRawQuery(const std::string& query, SQLOutputPack<_Outputs...> outputs,
-        SQLParamPack<_Params...> params, Callback&& callback) -> void;
+        template <class ... _Outputs, class ... _Params, class _Callback>
+        auto Execute(const std::string& query, SQLOutputPack<_Outputs...> outputs,
+            SQLParamPack<_Params...> params, _Callback&& callback) -> void;
+
+        template <class _OutputPack, class _ParamPack, class _Callback>
+        auto Execute(const std::string& query, _OutputPack& outputs,
+            const _ParamPack& params, _Callback&& callback) -> void;
 
         auto operator = (const SQLite3Database&) = delete;
 
@@ -95,13 +99,13 @@ namespace ADBC
         SQLOutputPack<_Outputs...> outputs, SQLParamPack<_Params...> params,
         Callback&& callback) -> void
     {
-        ExecuteRawQuery(query, outputs, params, std::move(callback));
+        Execute(query, outputs, params, std::move(callback));
     }
 
-    template <class ... _Outputs, class ... _Params, class Callback>
-    auto SQLite3Database::ExecuteRawQuery(const std::string& query,
+    template <class ... _Outputs, class ... _Params, class _Callback>
+    auto SQLite3Database::Execute(const std::string& query,
         SQLOutputPack<_Outputs...> outputs, SQLParamPack<_Params...> params,
-        Callback&& callback) -> void
+        _Callback&& callback) -> void
     {
         sqlite3_stmt* statement{};
 
@@ -139,9 +143,52 @@ namespace ADBC
                 auto columnID = ColumnID{};
                 (ExtractValue(values, statement, columnID++), ...);
 
-                std::invoke(std::forward<Callback>(callback), values...);
+                std::invoke(std::forward<_Callback>(callback), values...);
 
             }, outputs.Values);
         }
+    }
+
+    template <class _OutputPack, class _ParamPack, class _Callback>
+    auto SQLite3Database::Execute(const std::string& query, _OutputPack& outputs,
+        const _ParamPack& params, _Callback&& callback) -> void
+    {
+        sqlite3_stmt* statement{};
+
+        if (sqlite3_prepare_v2(m_DB, query.c_str(), query.size(),
+            &statement, nullptr) != SQLITE_OK)
+        {
+            throw std::runtime_error{ "[ADBC::SQLITE3Database] "
+                "Can't create statement" };
+        }
+
+        if (const auto columnCount = sqlite3_column_count(statement);
+            columnCount < std::tuple_size_v<_OutputPack>) 
+        {
+            throw std::runtime_error{ "[ADBC::SQLITE3Database] "
+                "Column count is less than provided values" };
+        }
+
+        std::apply([&](const auto&... params)
+        {
+            auto parameterId = 1;
+            (
+                BindValue(params, statement, parameterId++), ...
+            );
+        }, params);
+
+        while (sqlite3_step(statement) == SQLITE_ROW)
+        {
+            std::apply([&](auto&... outputs)
+            {
+                auto columnId = 0;
+                (
+                    ExtractValue(outputs, statement, columnId++), ...
+                );
+                std::invoke(callback, outputs...);
+            }, outputs);
+        }
+
+        sqlite3_finalize(statement);
     }
 };
