@@ -19,14 +19,12 @@ auto main() -> std::int32_t
         auto query = ADBC::Query{}
             .Select(ADBC::Col<"ID">(user.ID),
                 ADBC::Col<"Name">(user.Name), ADBC::Col<"Email">(user.Email))
-            .From(ASYS::SL{ "Users" });
+            .From(ASYS::SL{ "Users" })
+            .Where(ADBC::OPS::Equals(ADBC::Col<"ID">(user.ID), 1))
+            .And(ADBC::OPS::Equals(ADBC::Col<"ID">(user.ID), 1))
+            .Or(ADBC::OPS::Equals(ADBC::Col<"ID">(user.ID), 5));
 
         std::cout << query.GetText() << std::endl;
-
-        std::cout << ADBC::Operators::Equals(ADBC::Col<"ID">(user.ID))
-            << ' ' << ADBC::Operators::NotEquals(ADBC::Col<"ID">(user.ID))
-            << ' ' << ADBC::Operators::Between(ADBC::Col<"ID">(user.Email))
-            << std::endl;
     }
     catch (std::exception& exp)
     {

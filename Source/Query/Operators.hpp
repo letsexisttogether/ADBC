@@ -1,35 +1,31 @@
 #pragma once
 
 #include <string>
+#include <type_traits>
 
 #include "Schema/Column.hpp"
 
-namespace ADBC::Operators
+namespace ADBC::OPS
 {
-    template <ColumnType _Column>
-    auto Equals(const _Column& column) -> std::string
+    template <class _QueryParamPack>
+    struct Condition
     {
-        auto text = std::string{ _Column::Name };
-        text += " = ?";
+        std::string Text{};
+        _QueryParamPack Params{};
+    };
 
-        return text;
-    }
-
-    template <ColumnType _Column>
-    auto NotEquals(const _Column& column) -> std::string
+    template <ColumnType _Column, class _Param>
+    auto Equals(_Column&& column, _Param&& param)
     {
-        auto text = std::string{ _Column::Name };
-        text += " != ?";
+        using ParamType = std::remove_cvref_t<_Param>;
 
-        return text;
-    }
-
-    template <ColumnType _Column>
-    auto Between(const _Column& column) -> std::string
-    {
-        auto text = std::string{ _Column::Name };
-        text += " BETWEEN ? AND ?";
-
-        return text;
+        return Condition<std::tuple<ParamType>>
+        {
+            std::string{ std::remove_cvref_t<_Column>::Name } + " = ?",
+            std::tuple<ParamType>
+            {
+                std::forward<_Param>(param)
+            }
+        };
     }
 };

@@ -3,8 +3,8 @@
 #include <ASYS/String/StringLiteral.hpp>
 #include <ASYS/Traits/Traits.hpp>
 
-#include "Core/DBConnection.hpp"
 #include "Schema/Column.hpp"
+#include "Query/Operators.hpp"
 
 namespace ADBC
 {
@@ -43,8 +43,17 @@ namespace ADBC
             requires (ASYS::IsOneOfV<_State,
             QueryState::Select, QueryState::From>);
 
-        auto Where() requires (ASYS::IsOneOfV<_State,
-            QueryState::From>);
+        template <class _Condition>
+        auto Where(_Condition&& condition) 
+            requires (ASYS::IsOneOfV<_State, QueryState::From>);
+
+        template <class _Condition>
+        auto And(_Condition&& condition) 
+            requires (ASYS::IsOneOfV<_State, QueryState::Where>);
+
+        template <class _Condition>
+        auto Or(_Condition&& condition) 
+            requires (ASYS::IsOneOfV<_State, QueryState::Where>);
 
         auto GetText() const noexcept -> const std::string&;
 
@@ -53,11 +62,13 @@ namespace ADBC
 
     private:
         Query(const Query&) = delete;
+        auto operator = (const Query&) = delete;
 
         Query(std::string&& text, _QueryOutputPack outputs,
             _QueryParamPack params);
 
-        auto operator = (const Query&) = delete;
+        template <class _Condition>
+        auto ApplyOperator(_Condition&& condition, std::string&& opText);
 
     private:
         template <class, class, QueryState>
@@ -121,15 +132,27 @@ namespace ADBC
     }
 
     template <class _QueryOutputPack, class _QueryParamPack, QueryState _State>
-    auto Query<_QueryOutputPack, _QueryParamPack, _State>::Where()
+    template <class _Condition>
+    auto Query<_QueryOutputPack, _QueryParamPack, _State>::Where(_Condition&& condition) 
         requires (ASYS::IsOneOfV<_State, QueryState::From>)
     {
-        m_Text += "WHERE 1 = 1\n";
+        return ApplyOperator(condition, "WHERE");
+    }
 
-        return Query<_QueryOutputPack, _QueryParamPack, QueryState::Where>
-        {
-            std::move(m_Text), std::move(m_Outputs), std::move(m_Params)
-        };
+    template <class _QueryOutputPack, class _QueryParamPack, QueryState _State>
+    template <class _Condition>
+    auto Query<_QueryOutputPack, _QueryParamPack, _State>::And(_Condition&& condition) 
+        requires (ASYS::IsOneOfV<_State, QueryState::Where>)
+    {
+        return ApplyOperator(condition, "AND");
+    }
+
+    template <class _QueryOutputPack, class _QueryParamPack, QueryState _State>
+    template <class _Condition>
+    auto Query<_QueryOutputPack, _QueryParamPack, _State>::Or(_Condition&& condition) 
+        requires (ASYS::IsOneOfV<_State, QueryState::Where>)
+    {
+        return ApplyOperator(condition, "OR");
     }
 
     template <class _QueryOutputPack, class _QueryParamPack, QueryState _State>
@@ -158,4 +181,26 @@ namespace ADBC
         _QueryOutputPack outputs, _QueryParamPack params)
         : m_Text{ std::move(text) }, m_Outputs{ std::move(outputs) },
         m_Params{ std::move(params) } {}
+
+    template <class _QueryOutputPack, class _QueryParamPack, QueryState _State>
+    template <class _Condition>
+    auto Query<_QueryOutputPack, _QueryParamPack, _State>::
+        ApplyOperator(_Condition&& condition, std::string&& opText) 
+    {
+        m_Text += std::move(opText);
+        m_Text += ' ';
+        m_Text += condition.Text;
+        m_Text += '\n';
+
+        auto params = std::tuple_cat(std::move(m_Params),
+            std::forward<_Condition>(condition).Params);
+
+        return Query<_QueryOutputPack, decltype(params), QueryState::Where>
+        {
+            std::move(m_Text),
+            std::move(m_Outputs),
+            std::move(params)
+        };
+    }
+
 };

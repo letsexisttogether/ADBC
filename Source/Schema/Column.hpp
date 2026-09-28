@@ -43,12 +43,12 @@ namespace ADBC
         return Column<_Name, _Type, true>{ _Type{} };
     }
 
-    template <class _Type>
-    concept ColumnType = requires(_Type column)
+    template <class _Column>
+    concept ColumnType = requires(_Column column)
     {
-        typename std::remove_cvref_t<_Type>::ValueType;
-        typename std::remove_cvref_t<_Type>::StorageType;
-        std::remove_cvref_t<_Type>::Name;
+        typename std::remove_cvref_t<_Column>::ValueType;
+        typename std::remove_cvref_t<_Column>::StorageType;
+        std::remove_cvref_t<_Column>::Name;
         column.Value;
     };
 };
