@@ -20,7 +20,8 @@ auto main() -> std::int32_t
         auto query = ADBC::Query{}
             .Select(ADBC::Col<"ID">(user.ID),
                 ADBC::Col<"Name">(user.Name), ADBC::Col<"Email">(user.Email))
-            .From(ASYS::SL{ "Users" });
+            .From(ASYS::SL{ "Users" })
+            .Where(ADBC::OPS::NotEquals(ADBC::Col<"ID">(user.ID), 2));
 
         query.Execute(db, [&] (std::int32_t& id,
             std::string& name, std::string& email)
