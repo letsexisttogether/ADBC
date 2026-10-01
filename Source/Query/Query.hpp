@@ -8,6 +8,17 @@
 
 namespace ADBC
 {
+    /*
+    * Requirements:
+    * 1. Query checks itself for methods.
+    * 2. Query builds output list, param list.
+    * 3. Query builds its type.
+    * 4. Query is comp-time.
+    * 5. Executor checks the flags of the query.
+    * 6. Query's not dependent on the back end, executor is.
+    * Builder get 
+    */
+
     template <class ... _Types>
     using QueryOutputPack = std::tuple<_Types&...>;
 
@@ -35,7 +46,7 @@ namespace ADBC
     class Query
     {
     public:
-        Query() = default;
+        constexpr Query() = default;
 
         template <ColumnType... _Columns>
         auto Select(_Columns&&... columns)
@@ -59,20 +70,14 @@ namespace ADBC
         auto Or(_Condition&& condition) 
             requires (ASYS::IsOneOfV<_State, QueryState::Where>);
 
-        template <class _DB, class _Callback>
-        auto Execute(_DB& db, _Callback&& callback) -> void;
-
-        auto GetText() const noexcept -> const std::string&;
-
-        auto GetOutputPack() const noexcept -> const _QueryOutputPack&;
+        auto GetOutputPack() noexcept -> _QueryOutputPack&;
         auto GetParamPack() const noexcept -> const _QueryParamPack&;
 
     private:
         Query(const Query&) = delete;
         auto operator = (const Query&) = delete;
 
-        Query(std::string&& text, _QueryOutputPack outputs,
-            _QueryParamPack params);
+        Query(_QueryOutputPack outputs, _QueryParamPack params);
 
         template <class _Condition>
         auto ApplyOperator(_Condition&& condition, std::string&& opText);
@@ -82,7 +87,6 @@ namespace ADBC
         friend class Query;
 
     private:
-        std::string m_Text{};
         _QueryOutputPack m_Outputs{};
         _QueryParamPack m_Params{};
     };
@@ -94,30 +98,11 @@ namespace ADBC
         requires (ASYS::IsOneOfV<_State,
         QueryState::None, QueryState::Select>)
     {
-        auto text = std::string{ "SELECT " };
-
-        if (!(sizeof ... (_Columns)))
-        {
-            text += "*";
-        }
-
-        auto isFirst = true;
-        (
-            (
-                text += ((isFirst) ? (""): (", ")),
-                isFirst = false,
-                text += std::remove_cvref_t<_Columns>::Name
-            ),
-            ...
-        );
-
-        text += '\n';
-
-        auto outputs = std::tie(columns.Value...);
+        auto outputs = std::tie(columns...);
 
         return Query<decltype(outputs), std::tuple<>, QueryState::Select>
         {
-            std::move(text), outputs, {}
+            outputs, {}
         };
     }
 
@@ -128,13 +113,9 @@ namespace ADBC
         requires (ASYS::IsOneOfV<_State,
         QueryState::Select, QueryState::From>)
     {
-        m_Text += "FROM ";
-        m_Text += table;
-        m_Text += '\n';
-
         return Query<_QueryOutputPack, _QueryParamPack, QueryState::From>
         {
-            std::move(m_Text), std::move(m_Outputs), std::move(m_Params)
+            std::move(m_Outputs), std::move(m_Params)
         };
     }
 
@@ -166,23 +147,8 @@ namespace ADBC
     }
 
     template <class _QueryOutputPack, class _QueryParamPack, QueryState _State>
-    template <class _DB, class _Callback>
-    auto Query<_QueryOutputPack, _QueryParamPack, _State>::
-    Execute(_DB& db, _Callback&& callback) -> void
-    {
-        db.Execute(m_Text, m_Outputs, m_Params, callback);
-    }
-
-    template <class _QueryOutputPack, class _QueryParamPack, QueryState _State>
-    auto Query<_QueryOutputPack, _QueryParamPack, _State>::GetText()
-        const noexcept -> const std::string&
-    {
-        return m_Text;
-    }
-
-    template <class _QueryOutputPack, class _QueryParamPack, QueryState _State>
     auto Query<_QueryOutputPack, _QueryParamPack, _State>::GetOutputPack()
-        const noexcept -> const _QueryOutputPack&
+        noexcept -> _QueryOutputPack&
     {
         return m_Outputs;
     }
@@ -195,28 +161,20 @@ namespace ADBC
     }
 
     template <class _QueryOutputPack, class _QueryParamPack, QueryState _State>
-    Query<_QueryOutputPack, _QueryParamPack, _State>::Query(std::string&& text,
-        _QueryOutputPack outputs, _QueryParamPack params)
-        : m_Text{ std::move(text) }, m_Outputs{ std::move(outputs) },
-        m_Params{ std::move(params) } {}
+    Query<_QueryOutputPack, _QueryParamPack, _State>::Query
+        (_QueryOutputPack outputs, _QueryParamPack params)
+        : m_Outputs{ std::move(outputs) }, m_Params{ std::move(params) } {}
 
     template <class _QueryOutputPack, class _QueryParamPack, QueryState _State>
     template <class _Condition>
     auto Query<_QueryOutputPack, _QueryParamPack, _State>::
         ApplyOperator(_Condition&& condition, std::string&& opText) 
     {
-        m_Text += std::move(opText);
-        m_Text += ' ';
-        m_Text += condition.Text;
-        m_Text += '\n';
-
         auto params = std::tuple_cat(std::move(m_Params),
             std::forward<_Condition>(condition).Params);
 
         return Query<_QueryOutputPack, decltype(params), QueryState::Where>
         {
-            std::move(m_Text),
-            std::move(m_Outputs),
             std::move(params)
         };
     }
