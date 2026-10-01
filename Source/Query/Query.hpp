@@ -70,8 +70,11 @@ namespace ADBC
         auto Or(_Condition&& condition) 
             requires (ASYS::IsOneOfV<_State, QueryState::Where>);
 
+        auto GetOutputPack() const noexcept -> const _QueryOutputPack&;
         auto GetOutputPack() noexcept -> _QueryOutputPack&;
+
         auto GetParamPack() const noexcept -> const _QueryParamPack&;
+        auto GetParamPack() noexcept -> _QueryParamPack&;
 
     private:
         Query(const Query&) = delete;
@@ -148,6 +151,13 @@ namespace ADBC
 
     template <class _QueryOutputPack, class _QueryParamPack, QueryState _State>
     auto Query<_QueryOutputPack, _QueryParamPack, _State>::GetOutputPack()
+        const noexcept -> const _QueryOutputPack&
+    {
+        return m_Outputs;
+    }
+
+    template <class _QueryOutputPack, class _QueryParamPack, QueryState _State>
+    auto Query<_QueryOutputPack, _QueryParamPack, _State>::GetOutputPack()
         noexcept -> _QueryOutputPack&
     {
         return m_Outputs;
@@ -157,7 +167,14 @@ namespace ADBC
     auto Query<_QueryOutputPack, _QueryParamPack, _State>::GetParamPack()
         const noexcept -> const _QueryParamPack&
     {
-        return m_Outputs;
+        return m_Params;
+    }
+
+    template <class _QueryOutputPack, class _QueryParamPack, QueryState _State>
+    auto Query<_QueryOutputPack, _QueryParamPack, _State>::GetParamPack()
+        noexcept -> _QueryParamPack&
+    {
+        return m_Params;
     }
 
     template <class _QueryOutputPack, class _QueryParamPack, QueryState _State>
