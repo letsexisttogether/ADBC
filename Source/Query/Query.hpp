@@ -1,10 +1,11 @@
 #pragma once
 
+#include <tuple>
+
 #include <ASYS/String/StringLiteral.hpp>
 #include <ASYS/Traits/Traits.hpp>
 
 #include "Schema/Column.hpp"
-#include "Query/Operators.hpp"
 
 namespace ADBC
 {
@@ -85,14 +86,23 @@ namespace ADBC
             requires (ASYS::IsOneOfV<_State, QueryState::Where>);
         */
 
-        auto GetOutputPack() const noexcept -> const _QueryOutputPack&;
-        auto GetOutputPack() noexcept -> _QueryOutputPack&;
+        constexpr auto GetOutputPack() const noexcept
+            -> const _QueryOutputPack&;
+        constexpr auto GetOutputPack() noexcept
+            -> _QueryOutputPack&;
 
-        auto GetTable() const noexcept -> const _Table&;
-        auto GetTable() noexcept -> _Table&;
+        constexpr auto GetTable() const noexcept
+            -> const _Table&;
+        constexpr auto GetTable() noexcept
+            -> _Table&;
 
-        auto GetParamPack() const noexcept -> const _QueryParamPack&;
-        auto GetParamPack() noexcept -> _QueryParamPack&;
+        constexpr auto GetParamPack() const noexcept
+            -> const _QueryParamPack&;
+        constexpr auto GetParamPack() noexcept
+            -> _QueryParamPack&;
+
+        constexpr auto GetState() const noexcept
+            -> QueryState;
 
     private:
         Query(const Query&) = delete;
@@ -178,45 +188,52 @@ namespace ADBC
     */
 
     ADBCQueryTemplates
-    auto ADBCQueryMethod GetOutputPack() const noexcept
-        -> const _QueryOutputPack&
+    constexpr auto ADBCQueryMethod GetOutputPack()
+        const noexcept -> const _QueryOutputPack&
     {
         return m_Outputs;
     }
 
     ADBCQueryTemplates
-    auto ADBCQueryMethod GetOutputPack() noexcept
-        -> _QueryOutputPack&
+    constexpr auto ADBCQueryMethod GetOutputPack()
+        noexcept -> _QueryOutputPack&
     {
         return m_Outputs;
     }
 
     ADBCQueryTemplates
-    auto ADBC::ADBCQueryMethod GetTable() const noexcept
-        -> const _Table&
+    constexpr auto ADBC::ADBCQueryMethod GetTable()
+        const noexcept -> const _Table&
     {
         return m_Table;
     }
 
     ADBCQueryTemplates
-    auto ADBC::ADBCQueryMethod GetTable() noexcept
-        -> _Table&
+    constexpr auto ADBC::ADBCQueryMethod GetTable()
+        noexcept -> _Table&
     {
         return m_Table;
     }
 
     ADBCQueryTemplates
-    auto ADBCQueryMethod GetParamPack() const noexcept
-        -> const _QueryParamPack&
+    constexpr auto ADBCQueryMethod GetParamPack()
+        const noexcept -> const _QueryParamPack&
     {
         return m_Params;
     }
 
     ADBCQueryTemplates
-    auto ADBCQueryMethod GetParamPack() noexcept
-        -> _QueryParamPack&
+    constexpr auto ADBCQueryMethod GetParamPack()
+        noexcept -> _QueryParamPack&
     {
         return m_Params;
+    }
+
+    ADBCQueryTemplates
+    constexpr auto ADBCQueryMethod GetState() const noexcept
+        -> QueryState
+    {
+        return _State;
     }
 
     ADBCQueryTemplates

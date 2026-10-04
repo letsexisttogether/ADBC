@@ -4,8 +4,8 @@
 #include <ADBC/Core/DBConnection.hpp>
 #include <ADBC/Core/PrototypeTables.hpp>
 #include <ADBC/Query/Query.hpp>
-#include <ADBC/Query/Operators.hpp>
 #include <ADBC/Schema/Table.hpp>
+#include <ADBC/Buildecutor/SQLite3.hpp>
 
 auto main() -> std::int32_t
 {
@@ -35,6 +35,10 @@ auto main() -> std::int32_t
             std::cout << user.ID << ' ' << user.Name
                 << ' ' << user.Email << '\n';
         };
+
+        const auto someQuery = ADBC::SQLite3Builder::Build(query);
+
+        std::cout << someQuery << std::endl;
     }
     catch (std::exception& exp)
     {
