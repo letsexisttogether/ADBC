@@ -6,10 +6,11 @@
 #include <type_traits>
 
 #include "Query/Query.hpp"
+#include "Core/DBConnection.hpp"
 
 namespace ADBC
 {
-    class SQLite3Builder
+    class SQLite3Buildecutor
     {
     public:
         /**
@@ -29,7 +30,7 @@ namespace ADBC
     };
 
     template <class _Query>
-    constexpr auto SQLite3Builder::Build(const _Query& query) -> std::string
+    constexpr auto SQLite3Buildecutor::Build(const _Query& query) -> std::string
     {
         constexpr auto state = query.GetState();
 
@@ -43,7 +44,7 @@ namespace ADBC
     }
 
     template <class _Query>
-    constexpr auto SQLite3Builder::BuildSelect
+    constexpr auto SQLite3Buildecutor::BuildSelect
         (const _Query& query) -> std::string
     {
         const auto& outputPack = query.GetOutputPack();
@@ -77,7 +78,7 @@ namespace ADBC
     }
 
     template <class _Query>
-    constexpr auto SQLite3Builder::BuildFrom(const _Query& query)
+    constexpr auto SQLite3Buildecutor::BuildFrom(const _Query& query)
         -> std::string
     {
         auto queryText = std::string{ "FROM " } 

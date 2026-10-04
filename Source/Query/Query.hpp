@@ -61,62 +61,43 @@ namespace ADBC
     class Query
     {
     public:
-        constexpr Query() = default;
+        consteval Query() = default;
 
         template <ColumnType... _Columns>
-        auto Select(_Columns&&... columns)
+        consteval auto Select(_Columns&&... columns)
             requires (ASYS::IsOneOfV<_State,
             QueryState::None, QueryState::Select>);
 
-        auto From(_Table table)
+        consteval auto From(_Table table)
             requires (ASYS::IsOneOfV<_State,
             QueryState::Select, QueryState::From>);
 
-        /*
-        template <class _Condition>
-        auto Where(_Condition&& condition) 
-            requires (ASYS::IsOneOfV<_State, QueryState::From>);
-
-        template <class _Condition>
-        auto And(_Condition&& condition) 
-            requires (ASYS::IsOneOfV<_State, QueryState::Where>);
-
-        template <class _Condition>
-        auto Or(_Condition&& condition) 
-            requires (ASYS::IsOneOfV<_State, QueryState::Where>);
-        */
-
-        constexpr auto GetOutputPack() const noexcept
+        consteval auto GetOutputPack() const noexcept
             -> const _QueryOutputPack&;
-        constexpr auto GetOutputPack() noexcept
+        consteval auto GetOutputPack() noexcept
             -> _QueryOutputPack&;
 
-        constexpr auto GetTable() const noexcept
+        consteval auto GetTable() const noexcept
             -> const _Table&;
-        constexpr auto GetTable() noexcept
+        consteval auto GetTable() noexcept
             -> _Table&;
 
-        constexpr auto GetParamPack() const noexcept
+        consteval auto GetParamPack() const noexcept
             -> const _QueryParamPack&;
-        constexpr auto GetParamPack() noexcept
+        consteval auto GetParamPack() noexcept
             -> _QueryParamPack&;
 
-        constexpr auto GetState() const noexcept
+        consteval auto GetState() const noexcept
             -> QueryState;
 
     private:
         Query(const Query&) = delete;
         auto operator = (const Query&) = delete;
 
-        constexpr Query(_QueryOutputPack outputs);
-        constexpr Query(_QueryOutputPack outputs, _Table table);
-        constexpr Query(_QueryOutputPack outputs, _Table table,
+        consteval Query(_QueryOutputPack outputs);
+        consteval Query(_QueryOutputPack outputs, _Table table);
+        consteval Query(_QueryOutputPack outputs, _Table table,
             _QueryParamPack params);
-
-        /*
-        template <class _Condition>
-        auto ApplyOperator(_Condition&& condition, std::string&& opText);
-        */
 
     private:
         template <class, class, class, QueryState>
@@ -130,7 +111,7 @@ namespace ADBC
 
     ADBCQueryTemplates
     template <ColumnType... _Columns>
-    auto ADBCQueryMethod Select(_Columns&&... columns)
+    consteval auto ADBCQueryMethod Select(_Columns&&... columns)
         requires (ASYS::IsOneOfV<_State,
         QueryState::None, QueryState::Select>)
     {
@@ -147,7 +128,7 @@ namespace ADBC
     }
 
     ADBCQueryTemplates
-    auto ADBCQueryMethod From(_Table table)
+    consteval auto ADBCQueryMethod From(_Table table)
         requires (ASYS::IsOneOfV<_State,
         QueryState::Select, QueryState::From>)
     {
@@ -161,110 +142,68 @@ namespace ADBC
         };
     }
 
-    /*
     ADBCQueryTemplates
-    template <class _Condition>
-    auto ADBCQueryMethod Where(_Condition&& condition) 
-        requires (ASYS::IsOneOfV<_State, QueryState::From>)
-    {
-        return ApplyOperator(condition, "WHERE");
-    }
-
-    ADBCQueryTemplates
-    template <class _Condition>
-    auto ADBCQueryMethod And(_Condition&& condition) 
-        requires (ASYS::IsOneOfV<_State, QueryState::Where>)
-    {
-        return ApplyOperator(condition, "AND");
-    }
-
-    ADBCQueryTemplates
-    template <class _Condition>
-    auto ADBCQueryMethod Or(_Condition&& condition) 
-        requires (ASYS::IsOneOfV<_State, QueryState::Where>)
-    {
-        return ApplyOperator(condition, "OR");
-    }
-    */
-
-    ADBCQueryTemplates
-    constexpr auto ADBCQueryMethod GetOutputPack()
+    consteval auto ADBCQueryMethod GetOutputPack()
         const noexcept -> const _QueryOutputPack&
     {
         return m_Outputs;
     }
 
     ADBCQueryTemplates
-    constexpr auto ADBCQueryMethod GetOutputPack()
+    consteval auto ADBCQueryMethod GetOutputPack()
         noexcept -> _QueryOutputPack&
     {
         return m_Outputs;
     }
 
     ADBCQueryTemplates
-    constexpr auto ADBC::ADBCQueryMethod GetTable()
+    consteval auto ADBC::ADBCQueryMethod GetTable()
         const noexcept -> const _Table&
     {
         return m_Table;
     }
 
     ADBCQueryTemplates
-    constexpr auto ADBC::ADBCQueryMethod GetTable()
+    consteval auto ADBC::ADBCQueryMethod GetTable()
         noexcept -> _Table&
     {
         return m_Table;
     }
 
     ADBCQueryTemplates
-    constexpr auto ADBCQueryMethod GetParamPack()
+    consteval auto ADBCQueryMethod GetParamPack()
         const noexcept -> const _QueryParamPack&
     {
         return m_Params;
     }
 
     ADBCQueryTemplates
-    constexpr auto ADBCQueryMethod GetParamPack()
+    consteval auto ADBCQueryMethod GetParamPack()
         noexcept -> _QueryParamPack&
     {
         return m_Params;
     }
 
     ADBCQueryTemplates
-    constexpr auto ADBCQueryMethod GetState() const noexcept
+    consteval auto ADBCQueryMethod GetState() const noexcept
         -> QueryState
     {
         return _State;
     }
 
     ADBCQueryTemplates
-    constexpr ADBCQueryMethod Query(_QueryOutputPack outputs)
+    consteval ADBCQueryMethod Query(_QueryOutputPack outputs)
         : m_Outputs{ std::move(outputs) } {}
 
     ADBCQueryTemplates
-    constexpr ADBCQueryMethod Query(_QueryOutputPack outputs,
+    consteval ADBCQueryMethod Query(_QueryOutputPack outputs,
         _Table table) : m_Outputs{ std::move(outputs) },
         m_Table{ std::forward<_Table>(table) } {}
 
     ADBCQueryTemplates
-    constexpr ADBCQueryMethod Query(_QueryOutputPack outputs,
+    consteval ADBCQueryMethod Query(_QueryOutputPack outputs,
         _Table table, _QueryParamPack params)
         : m_Outputs{ std::move(outputs) },
         m_Table{ std::forward<_Table>(table) },
         m_Params{ std::move(params) } {}
-
-    /*
-    ADBCQueryTemplates
-    template <class _Condition>
-    auto ADBCQueryMethod ApplyOperator(_Condition&& condition,
-        std::string&& opText) 
-    {
-        auto params = std::tuple_cat(std::move(m_Params),
-            std::forward<_Condition>(condition).Params);
-
-        return Query<_QueryOutputPack, decltype(params), QueryState::Where>
-        {
-            std::move(params)
-        };
-    }
-    */
 };

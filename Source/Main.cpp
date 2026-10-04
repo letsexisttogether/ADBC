@@ -7,6 +7,13 @@
 #include <ADBC/Schema/Table.hpp>
 #include <ADBC/Buildecutor/SQLite3.hpp>
 
+consteval auto GetString()
+{
+    const auto str = std::string{ "Hello" };
+
+    return ASYS::SL<3>{}; 
+}
+
 auto main() -> std::int32_t
 {
     std::cout << "Hello, ADBC" << std::endl; 
@@ -17,7 +24,7 @@ auto main() -> std::int32_t
 
         auto users = std::vector<ADBC::UsersTable::Data>{};
 
-        auto query = ADBC::Query{}
+        constexpr auto query = ADBC::Query{}
             .Select
             (
                 ADBC::UsersTable::ID,
@@ -35,10 +42,6 @@ auto main() -> std::int32_t
             std::cout << user.ID << ' ' << user.Name
                 << ' ' << user.Email << '\n';
         };
-
-        const auto someQuery = ADBC::SQLite3Builder::Build(query);
-
-        std::cout << someQuery << std::endl;
     }
     catch (std::exception& exp)
     {
