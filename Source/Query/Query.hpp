@@ -4,8 +4,9 @@
 
 #include <ASYS/String/StringLiteral.hpp>
 #include <ASYS/Traits/Traits.hpp>
+#include <type_traits>
 
-#include "Schema/Column.hpp"
+#include "Schema/Table.hpp"
 
 namespace ADBC
 {
@@ -54,12 +55,17 @@ namespace ADBC
     template
     <
         class _QueryOutputPack = std::tuple<>,
-        class _Table = const char*,
+        class _Table = void,
         class _QueryParamPack = std::tuple<>,
         QueryState _State = QueryState::None
     >
     class Query
     {
+    public:
+        using QueryOutputPack = _QueryOutputPack;
+        using Table = _Table;
+        using QueryParamPack = _QueryParamPack;
+
     public:
         consteval Query() = default;
 
@@ -68,7 +74,8 @@ namespace ADBC
             requires (ASYS::IsOneOfV<_State,
             QueryState::None, QueryState::Select>);
 
-        consteval auto From(_Table table)
+        template <TableType _FromTable>
+        consteval auto From(_FromTable&&)
             requires (ASYS::IsOneOfV<_State,
             QueryState::Select, QueryState::From>);
 
@@ -76,11 +83,6 @@ namespace ADBC
             -> const _QueryOutputPack&;
         consteval auto GetOutputPack() noexcept
             -> _QueryOutputPack&;
-
-        consteval auto GetTable() const noexcept
-            -> const _Table&;
-        consteval auto GetTable() noexcept
-            -> _Table&;
 
         consteval auto GetParamPack() const noexcept
             -> const _QueryParamPack&;
@@ -90,14 +92,15 @@ namespace ADBC
         consteval auto GetState() const noexcept
             -> QueryState;
 
+    public:
+        static constexpr auto State = _State;
+
     private:
         Query(const Query&) = delete;
         auto operator = (const Query&) = delete;
 
         consteval Query(_QueryOutputPack outputs);
-        consteval Query(_QueryOutputPack outputs, _Table table);
-        consteval Query(_QueryOutputPack outputs, _Table table,
-            _QueryParamPack params);
+        consteval Query(_QueryOutputPack outputs, _QueryParamPack params);
 
     private:
         template <class, class, class, QueryState>
@@ -105,7 +108,6 @@ namespace ADBC
 
     private:
         _QueryOutputPack m_Outputs{};
-        _Table m_Table{};
         _QueryParamPack m_Params{};
     };
 
@@ -128,17 +130,18 @@ namespace ADBC
     }
 
     ADBCQueryTemplates
-    consteval auto ADBCQueryMethod From(_Table table)
+    template <TableType _FromTable>
+    consteval auto ADBCQueryMethod From(_FromTable&&)
         requires (ASYS::IsOneOfV<_State,
         QueryState::Select, QueryState::From>)
     {
         return Query
         <
-            _QueryOutputPack, _Table,
+            _QueryOutputPack, std::remove_cvref_t<_FromTable>,
             _QueryParamPack, QueryState::From
         >
         {
-            std::move(m_Outputs), table
+            std::move(m_Outputs)
         };
     }
 
@@ -154,20 +157,6 @@ namespace ADBC
         noexcept -> _QueryOutputPack&
     {
         return m_Outputs;
-    }
-
-    ADBCQueryTemplates
-    consteval auto ADBC::ADBCQueryMethod GetTable()
-        const noexcept -> const _Table&
-    {
-        return m_Table;
-    }
-
-    ADBCQueryTemplates
-    consteval auto ADBC::ADBCQueryMethod GetTable()
-        noexcept -> _Table&
-    {
-        return m_Table;
     }
 
     ADBCQueryTemplates
@@ -197,13 +186,6 @@ namespace ADBC
 
     ADBCQueryTemplates
     consteval ADBCQueryMethod Query(_QueryOutputPack outputs,
-        _Table table) : m_Outputs{ std::move(outputs) },
-        m_Table{ std::forward<_Table>(table) } {}
-
-    ADBCQueryTemplates
-    consteval ADBCQueryMethod Query(_QueryOutputPack outputs,
-        _Table table, _QueryParamPack params)
-        : m_Outputs{ std::move(outputs) },
-        m_Table{ std::forward<_Table>(table) },
+        _QueryParamPack params) : m_Outputs{ std::move(outputs) },
         m_Params{ std::move(params) } {}
 };

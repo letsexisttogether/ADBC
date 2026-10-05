@@ -7,6 +7,24 @@
 
 namespace ADBC
 {
+    template <ASYS::StringLiteral _Name>
+    struct Table
+    {
+        static constexpr auto Name = _Name;
+    };
+
+    template <ASYS::StringLiteral _Name>
+    constexpr auto Tbl()
+    {
+        return Table<_Name>{};
+    }
+
+    template<class _Type>
+    concept TableType = requires
+    {
+        std::remove_cvref_t<_Type>::Name;
+    };
+
     struct UsersTable 
     {
         struct Data 

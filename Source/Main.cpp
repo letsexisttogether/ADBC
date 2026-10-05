@@ -24,7 +24,7 @@ auto main() -> std::int32_t
                 ADBC::UsersTable::Name,
                 ADBC::UsersTable::Email
             )
-            .From("Users");
+            .From(ADBC::Tbl<ASYS::SL{ "Users" }>());
 
         ADBC::UsersTable::Entity.ID = 3;
         ADBC::UsersTable::Entity.Name = "SomeName";
@@ -36,7 +36,7 @@ auto main() -> std::int32_t
                 << ' ' << user.Email << '\n';
         };
 
-        const auto queryText = ADBC::SQLite3Buildecutor::BuildSQL(query);
+        const auto queryText = ADBC::SQLite3Buildecutor::Build<decltype(query)>();
         std::cout << queryText << '\n';
     }
     catch (std::exception& exp)

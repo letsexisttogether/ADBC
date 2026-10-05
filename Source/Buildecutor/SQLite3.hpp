@@ -1,12 +1,9 @@
 #pragma once
 
-#include <algorithm>
-#include <string>
 #include <tuple>
 #include <type_traits>
 
 #include "Query/Query.hpp"
-#include "Core/DBConnection.hpp"
 
 namespace ADBC
 {
@@ -15,40 +12,39 @@ namespace ADBC
     public:
         static constexpr auto MaxQuerySize = 1024;
 
-        template <class _Query>
-        static consteval auto Build(const _Query& query);
+        template<class _Query>
+        static consteval auto Build();
 
-        template <class _Query>
-        static auto BuildSQL(const _Query& query);
+        /*
+        template<class _Query>
+        static auto BuildSQL() -> std::string;
+        */
 
     private:
-        template <class _Query>
-        static constexpr auto BuildSelect(const _Query& query)
-            -> std::string;
+        template<class _Query>
+        static consteval auto BuildSelect();
 
-        template <class _Query>
-        static constexpr auto BuildFrom(const _Query& query)
-            -> std::string;
+        template<class _Query>
+        static consteval auto BuildFrom();
     };
 
-    template <class _Query>
-    consteval auto SQLite3Buildecutor::Build(const _Query& query)
+    template<class _Query>
+    consteval auto ADBC::SQLite3Buildecutor::Build()
     {
-        constexpr auto state = query.GetState();
-
-        static_assert(state >= QueryState::From,
-            "[ADBC::SQLite3Builder::Build] "
-            "Query is required to have FROM");
+        static_assert(
+            _Query::State >= QueryState::From,
+            "[ADBC::SQLite3Buildecutor::Build] Query requires FROM"
+        );
 
         auto queryText = ASYS::SL<MaxQuerySize>{};
 
-        queryText.Append(BuildSelect(query));
-        queryText.Append(BuildFrom(query));
+        queryText.Append(BuildSelect<_Query>());
+        queryText.Append(BuildFrom<_Query>());
 
         return queryText;
     }
 
-
+    /*
     template <class _Query>
     auto SQLite3Buildecutor::BuildSQL(const _Query& query)
     {
@@ -60,48 +56,52 @@ namespace ADBC
             builtQuery.GetLength()
         };
     }
+    */
 
-    template <class _Query>
-    constexpr auto SQLite3Buildecutor::BuildSelect
-        (const _Query& query) -> std::string
+    template<class _Query>
+    consteval auto SQLite3Buildecutor::BuildSelect()
     {
-        const auto& outputPack = query.GetOutputPack();
+        using OutputPack = typename _Query::QueryOutputPack;
 
-        static_assert(std::tuple_size_v<std::remove_cvref_t
-            <decltype(outputPack)>>, "Size of outputPack is 0");
+        constexpr auto outputsCount = std::tuple_size_v<OutputPack>;
 
-        auto queryText = std::string{ "SELECT " };
+        static_assert(outputsCount);
 
-        constexpr auto outputsSeparator = ASYS::SL{ ", " };
+        auto queryText = ASYS::SL<MaxQuerySize>{};
 
-        auto AddOutput = [&] (const auto& output)
+        queryText.Append("SELECT ");
+
+        [&]<std::size_t... _Indices>(std::index_sequence<_Indices...>)
         {
-            using ColumnType = std::remove_cvref_t<decltype(output)>;
+            ([&]
+            {
+                using Column = std::remove_cvref_t<std::tuple_element_t
+                    <_Indices, OutputPack>>;
 
-            queryText += ColumnType::Name;
-            queryText += outputsSeparator;
-        };
+                if constexpr (_Indices != 0)
+                {
+                    queryText.Append(", ");
+                }
 
-        std::apply([&] (auto&& ... outputs)
-        {
-            (AddOutput(outputs), ...);
-        }, outputPack);
+                queryText.Append(Column::Name);
+            }(), ...);
+        } (std::make_index_sequence<outputsCount>{});
 
-        queryText.pop_back();
-        queryText.pop_back();
-
-        queryText += '\n';
+        queryText.Append("\n");
 
         return queryText;
     }
 
-    template <class _Query>
-    constexpr auto SQLite3Buildecutor::BuildFrom
-        (const _Query& query) -> std::string
+    template<class _Query>
+    consteval auto SQLite3Buildecutor::BuildFrom()
     {
-        auto queryText = std::string{ "FROM " }
-            + query.GetTable();
+        using Table = typename _Query::Table;
 
-        return queryText;
+        auto text = ASYS::SL<1024>{};
+
+        text.Append("FROM ");
+        text.Append(Table::Name);
+
+        return text;
     }
 };
