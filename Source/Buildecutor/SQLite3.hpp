@@ -13,11 +13,13 @@ namespace ADBC
     class SQLite3Buildecutor
     {
     public:
-        /**
-        * @brief 
-        */
+        static constexpr auto MaxQuerySize = 1024;
+
         template <class _Query>
-        static constexpr auto Build(const _Query& query) -> std::string;
+        static consteval auto Build(const _Query& query);
+
+        template <class _Query>
+        static auto BuildSQL(const _Query& query);
 
     private:
         template <class _Query>
@@ -30,17 +32,33 @@ namespace ADBC
     };
 
     template <class _Query>
-    constexpr auto SQLite3Buildecutor::Build(const _Query& query) -> std::string
+    consteval auto SQLite3Buildecutor::Build(const _Query& query)
     {
         constexpr auto state = query.GetState();
 
-        static_assert(state >= QueryState::From, "[ADBC::SQLite3Builder::"
-            "Execute] Query's required to have FROM"); 
+        static_assert(state >= QueryState::From,
+            "[ADBC::SQLite3Builder::Build] "
+            "Query is required to have FROM");
 
-        auto queryText = BuildSelect(query);
-        queryText += BuildFrom(query);
+        auto queryText = ASYS::SL<MaxQuerySize>{};
+
+        queryText.Append(BuildSelect(query));
+        queryText.Append(BuildFrom(query));
 
         return queryText;
+    }
+
+
+    template <class _Query>
+    auto SQLite3Buildecutor::BuildSQL(const _Query& query)
+    {
+        constexpr auto builtQuery = Build(query);
+
+        return std::string
+        { 
+            builtQuery.Data.data(), 
+            builtQuery.GetLength()
+        };
     }
 
     template <class _Query>
@@ -78,10 +96,10 @@ namespace ADBC
     }
 
     template <class _Query>
-    constexpr auto SQLite3Buildecutor::BuildFrom(const _Query& query)
-        -> std::string
+    constexpr auto SQLite3Buildecutor::BuildFrom
+        (const _Query& query) -> std::string
     {
-        auto queryText = std::string{ "FROM " } 
+        auto queryText = std::string{ "FROM " }
             + query.GetTable();
 
         return queryText;
