@@ -13,20 +13,29 @@ namespace ADBC
         static constexpr auto MaxQuerySize = 1024;
 
         template<class _Query>
-        static consteval auto Build();
+        static consteval auto BuildComptime();
 
-        /*
         template<class _Query>
         static auto BuildSQL() -> std::string;
-        */
 
     private:
+        template<class _Query>
+        static consteval auto Build();
+
         template<class _Query>
         static consteval auto BuildSelect();
 
         template<class _Query>
         static consteval auto BuildFrom();
     };
+
+    template<class _Query>
+    consteval auto SQLite3Buildecutor::BuildComptime()
+    {
+        constexpr auto queryText = Build<_Query>();
+
+        return ASYS::Trim<queryText>();
+    }
 
     template<class _Query>
     consteval auto ADBC::SQLite3Buildecutor::Build()
@@ -44,11 +53,10 @@ namespace ADBC
         return queryText;
     }
 
-    /*
     template <class _Query>
-    auto SQLite3Buildecutor::BuildSQL(const _Query& query)
+    auto SQLite3Buildecutor::BuildSQL() -> std::string
     {
-        constexpr auto builtQuery = Build(query);
+        constexpr auto builtQuery = Build<_Query>();
 
         return std::string
         { 
@@ -56,7 +64,6 @@ namespace ADBC
             builtQuery.GetLength()
         };
     }
-    */
 
     template<class _Query>
     consteval auto SQLite3Buildecutor::BuildSelect()
@@ -67,9 +74,9 @@ namespace ADBC
 
         static_assert(outputsCount);
 
-        auto queryText = ASYS::SL<MaxQuerySize>{};
+        auto queryText = std::string{};
 
-        queryText.Append("SELECT ");
+        queryText += "SELECT ";
 
         [&]<std::size_t... _Indices>(std::index_sequence<_Indices...>)
         {
@@ -80,14 +87,14 @@ namespace ADBC
 
                 if constexpr (_Indices != 0)
                 {
-                    queryText.Append(", ");
+                    queryText += ", ";
                 }
 
-                queryText.Append(Column::Name);
+                queryText += Column::Name;
             }(), ...);
         } (std::make_index_sequence<outputsCount>{});
 
-        queryText.Append("\n");
+        queryText += '\n';
 
         return queryText;
     }
@@ -97,11 +104,11 @@ namespace ADBC
     {
         using Table = typename _Query::Table;
 
-        auto text = ASYS::SL<1024>{};
+        auto queryText = std::string{};
 
-        text.Append("FROM ");
-        text.Append(Table::Name);
+        queryText += "FROM ";
+        queryText += Table::Name;
 
-        return text;
+        return queryText;
     }
 };

@@ -7,6 +7,7 @@
 #include <ADBC/Schema/Table.hpp>
 #include <ADBC/Buildecutor/SQLite3.hpp>
 
+
 auto main() -> std::int32_t
 {
     std::cout << "Hello, ADBC" << std::endl; 
@@ -36,7 +37,8 @@ auto main() -> std::int32_t
                 << ' ' << user.Email << '\n';
         };
 
-        const auto queryText = ADBC::SQLite3Buildecutor::Build<decltype(query)>();
+        const auto queryText = ADBC::SQLite3Buildecutor::
+            BuildComptime<decltype(query)>();
         std::cout << queryText << '\n';
     }
     catch (std::exception& exp)
